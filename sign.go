@@ -22,7 +22,7 @@ func signParams(endpointURL string, params url.Values, userKey, secret string) e
 	params.Set("timestamp", strconv.FormatInt(time.Now().Unix(), 10))
 	params.Set("nonce", nonce())
 
-	baseString := "POST&" + url.QueryEscape(endpointURL) + "&" + url.QueryEscape(sortedEncode(params))
+	baseString := "POST&" + rfc3986Escape(endpointURL) + "&" + rfc3986Escape(sortedEncode(params))
 
 	key, err := base64.StdEncoding.DecodeString(secret)
 	if err != nil {
@@ -49,11 +49,35 @@ func sortedEncode(params url.Values) string {
 		if i > 0 {
 			b.WriteByte('&')
 		}
-		b.WriteString(k)
+		b.WriteString(rfc3986Escape(k))
 		b.WriteByte('=')
-		b.WriteString(url.QueryEscape(params.Get(k)))
+		b.WriteString(rfc3986Escape(params.Get(k)))
 	}
 	return b.String()
+}
+
+func rfc3986Escape(s string) string {
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if isUnreserved(c) {
+			b.WriteByte(c)
+		} else {
+			fmt.Fprintf(&b, "%%%02X", c)
+		}
+	}
+	return b.String()
+}
+
+func isUnreserved(c byte) bool {
+	switch {
+	case c >= 'A' && c <= 'Z', c >= 'a' && c <= 'z', c >= '0' && c <= '9':
+		return true
+	case c == '-' || c == '_' || c == '.' || c == '~':
+		return true
+	default:
+		return false
+	}
 }
 
 func nonce() string {
