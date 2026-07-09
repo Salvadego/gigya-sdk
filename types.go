@@ -27,6 +27,7 @@ func (r GigyaResponse) IsError() bool {
 
 type APIError struct {
 	Response GigyaResponse
+	Raw 	 []byte
 }
 
 func (e *APIError) Error() string {
@@ -90,7 +91,7 @@ func parseGigyaResponse(body []byte, successData any) error {
 	}
 
 	if envelope.IsError() {
-		return &APIError{Response: envelope}
+		return &APIError{Response: envelope, Raw: body}
 	}
 
 	if successData != nil {
